@@ -2439,3 +2439,150 @@ textarea:focus-visible {
 .notification-content small {
   color: #999;
 }
+/* =====================================================
+   PUBLIC NAVBAR
+   Used on Landing, Login and Register
+   ===================================================== */
+
+.public-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 78px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 7%;
+
+  background: rgba(255, 255, 255, 0.92);
+
+  backdrop-filter: blur(15px);
+
+  border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+
+  box-shadow: 0 4px 25px rgba(124, 58, 237, 0.06);
+
+  z-index: 1000;
+}
+
+
+/* LOGO */
+
+.public-navbar-logo {
+  font-size: 27px;
+  font-weight: 800;
+
+  color: #171321;
+
+  cursor: pointer;
+
+  letter-spacing: -1.2px;
+}
+
+.public-navbar-logo span {
+  color: #7c3aed;
+}
+
+
+/* ACTIONS */
+
+.public-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+
+/* LOGIN */
+
+.public-nav-login {
+  border: none;
+
+  background: transparent;
+
+  color: #4b4458;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  padding: 11px 20px;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.public-nav-login:hover {
+  background: #f3edff;
+  color: #7c3aed;
+}
+
+
+/* CREATE ACCOUNT */
+
+.public-nav-register {
+  border: none;
+
+  background: linear-gradient(
+    135deg,
+    #7c3aed,
+    #9333ea
+  );
+
+  color: white;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  padding: 12px 22px;
+
+  border-radius: 11px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 20px rgba(124, 58, 237, 0.25);
+
+  transition: all 0.2s ease;
+}
+
+.public-nav-register:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 10px 25px rgba(124, 58, 237, 0.35);
+}
+
+
+/* MOBILE */
+
+@media (max-width: 650px) {
+
+  .public-navbar {
+    padding: 0 20px;
+    height: 70px;
+  }
+
+  .public-navbar-logo {
+    font-size: 22px;
+  }
+
+  .public-navbar-actions {
+    gap: 5px;
+  }
+
+  .public-nav-login {
+    padding: 9px 12px;
+  }
+
+  .public-nav-register {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-
+import LandingPage from "./pages/LandingPage";
 import api from "./api";
 import "./App.css";
 
@@ -11,12 +11,13 @@ import Notifications from "./pages/Notifications";
 import Saved from "./pages/Saved";
 
 import Profile from "./Profile";
-
+import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminPosts from "./pages/AdminPosts";
 import AdminComments from "./pages/AdminComments";
 import AdminAnalytics from "./pages/AdminAnalytics";
+
 
 // =====================================================
 // READ ROLE FROM JWT
@@ -111,8 +112,12 @@ function App() {
   const [loading, setLoading] =
     useState(false);
 
-  const [currentPage, setCurrentPage] =
-    useState("home");
+ const [currentPage, setCurrentPage] =
+  useState(token ? "home" : "landing");
+
+// Controls landing / login / register before authentication
+const [authPage, setAuthPage] =
+  useState(token ? null : "landing");
 
   const [adminSection, setAdminSection] =
     useState("dashboard");
@@ -219,7 +224,8 @@ function App() {
         getUserFromToken(receivedToken)
       );
 
-      setCurrentPage("home");
+     setCurrentPage("home");
+setAuthPage(null);
 
     } catch (error) {
 
@@ -559,7 +565,8 @@ function App() {
 
     setPosts([]);
 
-    setCurrentPage("home");
+   setCurrentPage("landing");
+setAuthPage("landing");
 
   };
 
@@ -568,82 +575,199 @@ function App() {
   // LOGIN SCREEN
   // =====================================================
 
-  if (!token) {
+ // =====================================================
+// AUTHENTICATION SCREENS
+// =====================================================
+
+// =====================================================
+// AUTHENTICATION SCREENS
+// =====================================================
+
+if (!token) {
+
+  // ===================================================
+  // LANDING PAGE
+  // ===================================================
+
+  if (authPage === "landing") {
 
     return (
+      <LandingPage
+        onLogin={() => {
+          setLoginError("");
+          setAuthPage("login");
+        }}
 
-      <div className="socialpulse">
-
-        <div className="login-container">
-
-          <div className="login-card">
-
-            <div className="logo">
-              Social<span>Pulse</span>
-            </div>
-
-
-            <p className="tagline">
-              Connect. Share. Engage.
-            </p>
+        onRegister={() => {
+          setAuthPage("register");
+        }}
+      />
+    );
+  }
 
 
-            <h2>
-              Welcome Back
-            </h2>
+  // ===================================================
+  // REGISTER PAGE
+  // ===================================================
+
+  if (authPage === "register") {
+
+    return (
+      <Register
+        onLogin={() => {
+          setLoginError("");
+          setAuthPage("login");
+        }}
+      />
+    );
+  }
 
 
-            <form
-              onSubmit={login}
+  // ===================================================
+  // LOGIN PAGE
+  // ===================================================
+
+  return (
+
+    <div className="socialpulse">
+
+      <div className="login-container">
+
+        <div className="login-card">
+
+          {/* LOGO */}
+
+          <div className="logo">
+            Social<span>Pulse</span>
+          </div>
+
+          <p className="tagline">
+            Connect. Share. Engage.
+          </p>
+
+
+          {/* TITLE */}
+
+          <h2>
+            Welcome Back
+          </h2>
+
+
+          {/* LOGIN FORM */}
+
+          <form onSubmit={login}>
+
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              required
+            />
+
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              required
+            />
+
+
+            {/* ERROR */}
+
+            {loginError && (
+
+              <p className="login-error">
+                {loginError}
+              </p>
+
+            )}
+
+
+            {/* LOGIN BUTTON */}
+
+            <button
+              type="submit"
+              disabled={loggingIn}
             >
 
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(
-                    e.target.value
-                  )
-                }
-                required
-              />
+              {loggingIn
+                ? "Logging in..."
+                : "Login"}
+
+            </button>
+
+          </form>
 
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(
-                    e.target.value
-                  )
-                }
-                required
-              />
+          {/* REGISTER */}
+
+          <div
+            style={{
+              marginTop: "22px",
+              textAlign: "center",
+              color: "#777181",
+              fontSize: "14px"
+            }}
+          >
+
+            Don't have an account?
+
+            <button
+              type="button"
+              onClick={() => {
+                setLoginError("");
+                setAuthPage("register");
+              }}
+              style={{
+                marginLeft: "6px",
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "#7c3aed",
+                fontWeight: "700",
+                cursor: "pointer",
+                fontSize: "14px"
+              }}
+            >
+              Create Account
+            </button>
+
+          </div>
 
 
-              {loginError && (
+          {/* BACK TO LANDING */}
 
-                <p className="login-error">
-                  {loginError}
-                </p>
+          <div
+            style={{
+              marginTop: "14px",
+              textAlign: "center"
+            }}
+          >
 
-              )}
-
-
-              <button
-                type="submit"
-                disabled={loggingIn}
-              >
-
-                {loggingIn
-                  ? "Logging in..."
-                  : "Login"}
-
-              </button>
-
-            </form>
+            <button
+              type="button"
+              onClick={() => {
+                setLoginError("");
+                setAuthPage("landing");
+              }}
+              style={{
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "#8b8798",
+                cursor: "pointer",
+                fontSize: "13px"
+              }}
+            >
+              ← Back to SocialPulse
+            </button>
 
           </div>
 
@@ -651,11 +775,10 @@ function App() {
 
       </div>
 
-    );
+    </div>
 
-  }
-
-
+  );
+}
   // =====================================================
   // MAIN APPLICATION
   // =====================================================
