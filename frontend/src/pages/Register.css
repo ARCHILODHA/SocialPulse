@@ -287,3 +287,42 @@
   }
 
 }
+.register-page {
+  position: relative;
+}
+
+.register-card {
+  position: relative;
+}
+
+.register-back-button {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  border: none;
+  background: transparent;
+
+  color: #6d28d9;
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+  padding: 8px 10px;
+
+  transition: all 0.2s ease;
+}
+
+.register-back-button:hover {
+  color: #4c1d95;
+  transform: translateX(-3px);
+}
+
+.back-arrow {
+  font-size: 21px;
+  line-height: 1;
+}

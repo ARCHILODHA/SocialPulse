@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import LandingPage from "./pages/LandingPage";
 import api from "./api";
 import "./App.css";
@@ -12,6 +13,7 @@ import Saved from "./pages/Saved";
 
 import Profile from "./Profile";
 import Register from "./pages/Register";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminPosts from "./pages/AdminPosts";
@@ -22,9 +24,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 // =====================================================
 // READ ROLE FROM JWT
 // =====================================================
-// The backend remains the real security check.
-// This helper is only used to decide whether to show
-// the Admin Dashboard button in the UI.
+
 const getUserFromToken = (jwtToken) => {
 
   if (!jwtToken) {
@@ -53,12 +53,19 @@ const getUserFromToken = (jwtToken) => {
     }
 
     if (typeof role === "string") {
-      role = role.replace(/^ROLE_/, "").toUpperCase();
+      role = role
+        .replace(/^ROLE_/, "")
+        .toUpperCase();
     }
 
     return {
-      email: payload.sub || payload.email || "",
-      role: role || "USER",
+      email:
+        payload.sub ||
+        payload.email ||
+        "",
+
+      role:
+        role || "USER",
     };
 
   } catch (error) {
@@ -73,7 +80,12 @@ const getUserFromToken = (jwtToken) => {
 };
 
 
+// =====================================================
+// APP
+// =====================================================
+
 function App() {
+
 
   // =====================================================
   // AUTHENTICATION
@@ -82,19 +94,23 @@ function App() {
   const [token, setToken] = useState(
     localStorage.getItem("token")
   );
-  const [currentUser, setCurrentUser] = useState(
-    () =>
+
+  const [currentUser, setCurrentUser] =
+    useState(() =>
       getUserFromToken(
         localStorage.getItem("token")
       )
-  );
+    );
 
   const [userId, setUserId] = useState(
     localStorage.getItem("userId")
   );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
 
   const [loginError, setLoginError] =
     useState("");
@@ -107,17 +123,25 @@ function App() {
   // APPLICATION STATE
   // =====================================================
 
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] =
+    useState([]);
 
   const [loading, setLoading] =
     useState(false);
 
- const [currentPage, setCurrentPage] =
-  useState(token ? "home" : "landing");
+  const [currentPage, setCurrentPage] =
+    useState(
+      token
+        ? "home"
+        : "landing"
+    );
 
-// Controls landing / login / register before authentication
-const [authPage, setAuthPage] =
-  useState(token ? null : "landing");
+  const [authPage, setAuthPage] =
+    useState(
+      token
+        ? null
+        : "landing"
+    );
 
   const [adminSection, setAdminSection] =
     useState("dashboard");
@@ -152,23 +176,10 @@ const [authPage, setAuthPage] =
   // =====================================================
 
   const [notifications, setNotifications] =
-    useState(() => {
+    useState([]);
 
-      try {
-
-        return JSON.parse(
-          localStorage.getItem(
-            "notifications"
-          ) || "[]"
-        );
-
-      } catch {
-
-        return [];
-
-      }
-
-    });
+  const [notificationCount, setNotificationCount] =
+    useState(0);
 
 
   // =====================================================
@@ -204,6 +215,8 @@ const [authPage, setAuthPage] =
 
       }
 
+
+      // Save authentication
       localStorage.setItem(
         "token",
         receivedToken
@@ -214,6 +227,8 @@ const [authPage, setAuthPage] =
         response.data.id
       );
 
+
+      // Update React state
       setToken(receivedToken);
 
       setUserId(
@@ -221,11 +236,18 @@ const [authPage, setAuthPage] =
       );
 
       setCurrentUser(
-        getUserFromToken(receivedToken)
+        getUserFromToken(
+          receivedToken
+        )
       );
 
-     setCurrentPage("home");
-setAuthPage(null);
+
+      setCurrentPage("home");
+      setAuthPage(null);
+
+      // Clear login fields
+      setEmail("");
+      setPassword("");
 
     } catch (error) {
 
@@ -252,42 +274,23 @@ setAuthPage(null);
   // LOAD POSTS
   // =====================================================
 
-  useEffect(() => {
-
-    if (token) {
-
-      loadPosts();
-
-    }
-
-  }, [token]);
-
-
-  // Keep the admin page inaccessible in the UI
-  // when the current JWT does not contain ADMIN.
-  useEffect(() => {
-
-    if (
-      currentPage === "admin" &&
-      currentUser?.role !== "ADMIN"
-    ) {
-      setCurrentPage("home");
-    }
-
-  }, [currentPage, currentUser]);
-
-
   const loadPosts = async () => {
+
+    if (!token) {
+      return;
+    }
 
     setLoading(true);
 
     try {
 
       const response =
-        await api.get("/posts");
+        await api.get(
+          "/posts"
+        );
 
       setPosts(
-        response.data
+        response.data || []
       );
 
     } catch (error) {
@@ -316,25 +319,175 @@ setAuthPage(null);
 
 
   // =====================================================
-  // POST CREATED
-  // =====================================================
-  //
-  // CreatePost.jsx already creates the post through
-  // the backend and sends the newly created post here.
-  //
-  // We simply add that post to the beginning of the feed.
+  // LOAD NOTIFICATIONS
   // =====================================================
 
-  const handlePostCreated = (newPost) => {
+  const loadNotifications = async () => {
+
+    if (!token) {
+      return;
+    }
+
+    try {
+
+      const response =
+        await api.get(
+          "/notifications"
+        );
+
+      setNotifications(
+        response.data || []
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load notifications:",
+        error
+      );
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403
+      ) {
+
+        logout();
+
+      }
+
+    }
+
+  };
+
+
+  // =====================================================
+  // LOAD UNREAD NOTIFICATION COUNT
+  // =====================================================
+
+  const loadNotificationCount = async () => {
+
+    if (!token) {
+      return;
+    }
+
+    try {
+
+      const response =
+        await api.get(
+          "/notifications/unread-count"
+        );
+
+      setNotificationCount(
+        Number(response.data) || 0
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load notification count:",
+        error
+      );
+
+    }
+
+  };
+
+
+  // =====================================================
+  // LOAD DATA AFTER LOGIN
+  // =====================================================
+
+  useEffect(() => {
+
+    if (!token) {
+      return;
+    }
+
+    loadPosts();
+
+    loadNotifications();
+
+    loadNotificationCount();
+
+  }, [token]);
+
+
+  // =====================================================
+  // REFRESH NOTIFICATIONS
+  // =====================================================
+  // Refresh notification data periodically so the
+  // navbar badge updates when another user likes/comments.
+
+  useEffect(() => {
+
+    if (!token) {
+      return;
+    }
+
+    const interval =
+      setInterval(() => {
+
+        loadNotificationCount();
+
+        if (
+          currentPage ===
+          "notifications"
+        ) {
+
+          loadNotifications();
+
+        }
+
+      }, 10000);
+
+    return () =>
+      clearInterval(interval);
+
+  }, [
+    token,
+    currentPage
+  ]);
+
+
+  // =====================================================
+  // ADMIN ACCESS CHECK
+  // =====================================================
+
+  useEffect(() => {
+
+    if (
+      currentPage === "admin" &&
+      currentUser?.role !== "ADMIN"
+    ) {
+
+      setCurrentPage("home");
+
+    }
+
+  }, [
+    currentPage,
+    currentUser
+  ]);
+
+
+  // =====================================================
+  // POST CREATED
+  // =====================================================
+
+  const handlePostCreated = (
+    newPost
+  ) => {
 
     if (!newPost?.id) {
       return;
     }
 
-    setPosts((currentPosts) => [
-      newPost,
-      ...currentPosts,
-    ]);
+    setPosts(
+      currentPosts => [
+        newPost,
+        ...currentPosts,
+      ]
+    );
 
   };
 
@@ -351,23 +504,29 @@ setAuthPage(null);
       return;
     }
 
-    setPosts((current) =>
-      current.map((post) =>
-        String(post.id) ===
-        String(updatedPost.id)
-          ? updatedPost
-          : post
-      )
+    setPosts(
+      current =>
+        current.map(
+          post =>
+            String(post.id) ===
+            String(updatedPost.id)
+
+              ? updatedPost
+
+              : post
+        )
     );
 
   };
 
 
   // =====================================================
-  // LIKE
+  // LIKE / UNLIKE
   // =====================================================
 
-  const toggleLike = async (postId) => {
+  const toggleLike = async (
+    postId
+  ) => {
 
     try {
 
@@ -380,11 +539,18 @@ setAuthPage(null);
         response.data
       );
 
-      addNotification({
-        type: "like",
-        message:
-          "You interacted with a post",
-      });
+
+      // Refresh real notification data
+      await loadNotificationCount();
+
+      if (
+        currentPage ===
+        "notifications"
+      ) {
+
+        await loadNotifications();
+
+      }
 
     } catch (error) {
 
@@ -392,6 +558,17 @@ setAuthPage(null);
         "Like failed:",
         error
       );
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403
+      ) {
+
+        alert(
+          "Please login again."
+        );
+
+      }
 
     }
 
@@ -421,12 +598,13 @@ setAuthPage(null);
         `/posts/${postId}`
       );
 
-      setPosts((current) =>
-        current.filter(
-          (post) =>
-            String(post.id) !==
-            String(postId)
-        )
+      setPosts(
+        current =>
+          current.filter(
+            post =>
+              String(post.id) !==
+              String(postId)
+          )
       );
 
     } catch (error) {
@@ -450,97 +628,115 @@ setAuthPage(null);
   // SAVE / UNSAVE
   // =====================================================
 
-  const toggleSave = (postId) => {
+  const toggleSave = (
+    postId
+  ) => {
 
-    setSavedPosts((current) => {
+    setSavedPosts(
+      current => {
 
-      const exists =
-        current.some(
-          (id) =>
-            String(id) ===
-            String(postId)
+        const exists =
+          current.some(
+            id =>
+              String(id) ===
+              String(postId)
+          );
+
+        const updated =
+          exists
+
+            ? current.filter(
+                id =>
+                  String(id) !==
+                  String(postId)
+              )
+
+            : [
+                ...current,
+                postId,
+              ];
+
+
+        localStorage.setItem(
+          "savedPosts",
+          JSON.stringify(
+            updated
+          )
         );
 
-      const updated = exists
 
-        ? current.filter(
-            (id) =>
-              String(id) !==
-              String(postId)
-          )
+        return updated;
 
-        : [
-            ...current,
-            postId,
-          ];
-
-
-      localStorage.setItem(
-        "savedPosts",
-        JSON.stringify(updated)
-      );
-
-
-      return updated;
-
-    });
+      }
+    );
 
   };
 
 
   // =====================================================
-  // NOTIFICATIONS
+  // MARK ALL NOTIFICATIONS AS READ
   // =====================================================
 
-  const addNotification =
-    (notification) => {
+  const markAllNotificationsRead =
+    async () => {
 
-      const item = {
+      try {
 
-        id: Date.now(),
+        await api.put(
+          "/notifications/read-all"
+        );
 
-        ...notification,
-
-        createdAt:
-          new Date().toLocaleString(),
-
-      };
-
-
-      setNotifications(
-        (current) => {
-
-          const updated = [
-            item,
-            ...current,
-          ].slice(0, 50);
-
-
-          localStorage.setItem(
-            "notifications",
-            JSON.stringify(
-              updated
+        setNotifications(
+          current =>
+            current.map(
+              notification => ({
+                ...notification,
+                read: true,
+              })
             )
-          );
+        );
 
+        setNotificationCount(0);
 
-          return updated;
+      } catch (error) {
 
-        }
-      );
+        console.error(
+          "Failed to mark notifications as read:",
+          error
+        );
+
+      }
 
     };
 
 
-  const clearNotifications = () => {
+  // =====================================================
+  // CLEAR ALL NOTIFICATIONS
+  // =====================================================
 
-    setNotifications([]);
+  const clearNotifications =
+    async () => {
 
-    localStorage.removeItem(
-      "notifications"
-    );
+      try {
 
-  };
+        await api.delete(
+          "/notifications"
+        );
+
+        setNotifications([]);
+
+        setNotificationCount(0);
+
+      } catch (error) {
+
+        console.error(
+          "Failed to clear notifications:",
+          error
+        );
+
+      }
+
+    };
 
 
   // =====================================================
@@ -557,6 +753,7 @@ setAuthPage(null);
       "userId"
     );
 
+
     setToken(null);
 
     setUserId(null);
@@ -565,209 +762,261 @@ setAuthPage(null);
 
     setPosts([]);
 
-   setCurrentPage("landing");
-setAuthPage("landing");
+    setNotifications([]);
+
+    setNotificationCount(0);
+
+    setCurrentPage(
+      "landing"
+    );
+
+    setAuthPage(
+      "landing"
+    );
 
   };
 
 
   // =====================================================
-  // LOGIN SCREEN
+  // AUTHENTICATION SCREENS
   // =====================================================
 
- // =====================================================
-// AUTHENTICATION SCREENS
-// =====================================================
+  if (!token) {
 
-// =====================================================
-// AUTHENTICATION SCREENS
-// =====================================================
 
-if (!token) {
+    // ===================================================
+    // LANDING PAGE
+    // ===================================================
 
-  // ===================================================
-  // LANDING PAGE
-  // ===================================================
+    if (
+      authPage === "landing"
+    ) {
 
-  if (authPage === "landing") {
+      return (
+        <LandingPage
+
+          onLogin={() => {
+
+            setLoginError("");
+
+            setAuthPage(
+              "login"
+            );
+
+          }}
+
+          onRegister={() => {
+
+            setAuthPage(
+              "register"
+            );
+
+          }}
+
+        />
+      );
+
+    }
+
+
+    // ===================================================
+    // REGISTER PAGE
+    // ===================================================
+
+    if (
+      authPage === "register"
+    ) {
+
+      return (
+        <Register
+
+          onLogin={() => {
+
+            setLoginError("");
+
+            setAuthPage(
+              "login"
+            );
+
+          }}
+
+        />
+      );
+
+    }
+
+
+    // ===================================================
+    // LOGIN PAGE
+    // ===================================================
 
     return (
-      <LandingPage
-        onLogin={() => {
-          setLoginError("");
-          setAuthPage("login");
-        }}
 
-        onRegister={() => {
-          setAuthPage("register");
-        }}
-      />
-    );
-  }
+      <div className="socialpulse">
+
+        <div className="login-container">
+
+          <div className="login-card">
 
 
-  // ===================================================
-  // REGISTER PAGE
-  // ===================================================
+            {/* LOGO */}
 
-  if (authPage === "register") {
+            <div className="logo">
+              Social<span>Pulse</span>
+            </div>
 
-    return (
-      <Register
-        onLogin={() => {
-          setLoginError("");
-          setAuthPage("login");
-        }}
-      />
-    );
-  }
+            <p className="tagline">
+              Connect. Share. Engage.
+            </p>
 
 
-  // ===================================================
-  // LOGIN PAGE
-  // ===================================================
+            {/* TITLE */}
 
-  return (
-
-    <div className="socialpulse">
-
-      <div className="login-container">
-
-        <div className="login-card">
-
-          {/* LOGO */}
-
-          <div className="logo">
-            Social<span>Pulse</span>
-          </div>
-
-          <p className="tagline">
-            Connect. Share. Engage.
-          </p>
+            <h2>
+              Welcome Back
+            </h2>
 
 
-          {/* TITLE */}
+            {/* LOGIN FORM */}
 
-          <h2>
-            Welcome Back
-          </h2>
-
-
-          {/* LOGIN FORM */}
-
-          <form onSubmit={login}>
-
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              required
-            />
-
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              required
-            />
-
-
-            {/* ERROR */}
-
-            {loginError && (
-
-              <p className="login-error">
-                {loginError}
-              </p>
-
-            )}
-
-
-            {/* LOGIN BUTTON */}
-
-            <button
-              type="submit"
-              disabled={loggingIn}
+            <form
+              onSubmit={login}
             >
 
-              {loggingIn
-                ? "Logging in..."
-                : "Login"}
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) =>
+                  setEmail(
+                    e.target.value
+                  )
+                }
+                required
+              />
 
-            </button>
 
-          </form>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(
+                    e.target.value
+                  )
+                }
+                required
+              />
 
 
-          {/* REGISTER */}
+              {/* ERROR */}
 
-          <div
-            style={{
-              marginTop: "22px",
-              textAlign: "center",
-              color: "#777181",
-              fontSize: "14px"
-            }}
-          >
+              {loginError && (
 
-            Don't have an account?
+                <p className="login-error">
+                  {loginError}
+                </p>
 
-            <button
-              type="button"
-              onClick={() => {
-                setLoginError("");
-                setAuthPage("register");
-              }}
+              )}
+
+
+              {/* LOGIN BUTTON */}
+
+              <button
+                type="submit"
+                disabled={loggingIn}
+              >
+
+                {loggingIn
+                  ? "Logging in..."
+                  : "Login"}
+
+              </button>
+
+            </form>
+
+
+            {/* REGISTER */}
+
+            <div
               style={{
-                marginLeft: "6px",
-                padding: 0,
-                border: "none",
-                background: "transparent",
-                color: "#7c3aed",
-                fontWeight: "700",
-                cursor: "pointer",
-                fontSize: "14px"
+                marginTop: "22px",
+                textAlign: "center",
+                color: "#777181",
+                fontSize: "14px",
               }}
             >
-              Create Account
-            </button>
 
-          </div>
+              Don't have an account?
+
+              <button
+                type="button"
+                onClick={() => {
+
+                  setLoginError("");
+
+                  setAuthPage(
+                    "register"
+                  );
+
+                }}
+                style={{
+                  marginLeft: "6px",
+                  padding: 0,
+                  border: "none",
+                  background:
+                    "transparent",
+                  color: "#7c3aed",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+
+                Create Account
+
+              </button>
+
+            </div>
 
 
-          {/* BACK TO LANDING */}
+            {/* BACK TO LANDING */}
 
-          <div
-            style={{
-              marginTop: "14px",
-              textAlign: "center"
-            }}
-          >
-
-            <button
-              type="button"
-              onClick={() => {
-                setLoginError("");
-                setAuthPage("landing");
-              }}
+            <div
               style={{
-                padding: 0,
-                border: "none",
-                background: "transparent",
-                color: "#8b8798",
-                cursor: "pointer",
-                fontSize: "13px"
+                marginTop: "14px",
+                textAlign: "center",
               }}
             >
-              ← Back to SocialPulse
-            </button>
+
+              <button
+                type="button"
+                onClick={() => {
+
+                  setLoginError("");
+
+                  setAuthPage(
+                    "landing"
+                  );
+
+                }}
+                style={{
+                  padding: 0,
+                  border: "none",
+                  background:
+                    "transparent",
+                  color: "#8b8798",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                }}
+              >
+
+                ← Back to SocialPulse
+
+              </button>
+
+            </div>
+
 
           </div>
 
@@ -775,16 +1024,14 @@ if (!token) {
 
       </div>
 
-    </div>
+    );
 
-  );
-}
+  }
+
+
   // =====================================================
   // MAIN APPLICATION
   // =====================================================
-
-  // Admin access is checked again at render time below.
-  // The backend endpoint remains the authoritative check.
 
   return (
 
@@ -796,31 +1043,53 @@ if (!token) {
           ================================================= */}
 
       <Navbar
-        currentPage={currentPage}
+
+        currentPage={
+          currentPage
+        }
+
         setCurrentPage={
           setCurrentPage
         }
+
         notificationCount={
-          notifications.length
+          notificationCount
         }
-        onLogout={logout}
+
+        onLogout={
+          logout
+        }
+
       />
 
+
       {/* =================================================
-          ADMIN ACCESS
+          ADMIN BUTTON
           ================================================= */}
 
-      {currentUser?.role === "ADMIN" && (
+      {currentUser?.role ===
+        "ADMIN" && (
+
         <button
           type="button"
           className="admin-nav-button"
           onClick={() => {
-            setAdminSection("dashboard");
-            setCurrentPage("admin");
+
+            setAdminSection(
+              "dashboard"
+            );
+
+            setCurrentPage(
+              "admin"
+            );
+
           }}
         >
+
           📊 Admin Dashboard
+
         </button>
+
       )}
 
 
@@ -828,13 +1097,30 @@ if (!token) {
           HOME
           ================================================= */}
 
-      {currentPage === "home" && (
+      {currentPage ===
+        "home" && (
 
         <Home
-          posts={posts}
-          loading={loading}
-          userId={userId}
-          savedPosts={savedPosts}
+
+          posts={
+            posts
+          }
+
+          loading={
+            loading
+          }
+
+          userId={
+            userId
+          }
+
+          user={
+            currentUser
+          }
+
+          savedPosts={
+            savedPosts
+          }
 
           onPostCreated={
             handlePostCreated
@@ -861,12 +1147,22 @@ if (!token) {
           EXPLORE
           ================================================= */}
 
-      {currentPage === "explore" && (
+      {currentPage ===
+        "explore" && (
 
         <Explore
-          posts={posts}
-          userId={userId}
-          savedPosts={savedPosts}
+
+          posts={
+            posts
+          }
+
+          userId={
+            userId
+          }
+
+          savedPosts={
+            savedPosts
+          }
 
           onPostUpdated={
             handlePostUpdated
@@ -893,12 +1189,17 @@ if (!token) {
         "notifications" && (
 
         <Notifications
+
           notifications={
             notifications
           }
 
           onClear={
             clearNotifications
+          }
+
+          onMarkAllRead={
+            markAllNotificationsRead
           }
 
         />
@@ -910,12 +1211,22 @@ if (!token) {
           SAVED
           ================================================= */}
 
-      {currentPage === "saved" && (
+      {currentPage ===
+        "saved" && (
 
         <Saved
-          posts={posts}
-          userId={userId}
-          savedPosts={savedPosts}
+
+          posts={
+            posts
+          }
+
+          userId={
+            userId
+          }
+
+          savedPosts={
+            savedPosts
+          }
 
           onPostUpdated={
             handlePostUpdated
@@ -938,93 +1249,152 @@ if (!token) {
           PROFILE
           ================================================= */}
 
-      {currentPage === "profile" && (
+      {currentPage ===
+        "profile" && (
 
         <Profile
+
           onBack={() =>
-            setCurrentPage("home")
+            setCurrentPage(
+              "home"
+            )
           }
+
         />
 
       )}
 
-{/* =================================================
-    ADMIN ANALYTICS
-    ================================================= */}
 
-{currentPage === "admin" &&
-  currentUser?.role === "ADMIN" &&
-  adminSection === "analytics" && (
+      {/* =================================================
+          ADMIN ANALYTICS
+          ================================================= */}
 
-  <AdminAnalytics
-    onBack={() =>
-      setAdminSection("dashboard")
-    }
-  />
+      {currentPage === "admin" &&
+        currentUser?.role ===
+          "ADMIN" &&
+        adminSection ===
+          "analytics" && (
 
-)}
+        <AdminAnalytics
+
+          onBack={() =>
+            setAdminSection(
+              "dashboard"
+            )
+          }
+
+        />
+
+      )}
+
+
       {/* =================================================
           ADMIN DASHBOARD
           ================================================= */}
 
       {currentPage === "admin" &&
-        currentUser?.role === "ADMIN" &&
-        adminSection === "dashboard" && (
+        currentUser?.role ===
+          "ADMIN" &&
+        adminSection ===
+          "dashboard" && (
 
         <AdminDashboard
+
           onBack={() => {
-            setAdminSection("dashboard");
-            setCurrentPage("home");
+
+            setAdminSection(
+              "dashboard"
+            );
+
+            setCurrentPage(
+              "home"
+            );
+
           }}
-          onSectionChange={(section) => {
-            setAdminSection(section);
-          }}
+
+          onSectionChange={
+            (section) => {
+
+              setAdminSection(
+                section
+              );
+
+            }
+          }
+
         />
 
       )}
+
+
+      {/* =================================================
+          ADMIN USERS
+          ================================================= */}
 
       {currentPage === "admin" &&
-        currentUser?.role === "ADMIN" &&
-        adminSection === "users" && (
+        currentUser?.role ===
+          "ADMIN" &&
+        adminSection ===
+          "users" && (
 
         <AdminUsers
+
           onBack={() =>
-            setAdminSection("dashboard")
+            setAdminSection(
+              "dashboard"
+            )
           }
+
         />
 
       )}
+
 
       {/* =================================================
           ADMIN POSTS
           ================================================= */}
 
       {currentPage === "admin" &&
-        currentUser?.role === "ADMIN" &&
-        adminSection === "posts" && (
+        currentUser?.role ===
+          "ADMIN" &&
+        adminSection ===
+          "posts" && (
 
         <AdminPosts
+
           onBack={() =>
-            setAdminSection("dashboard")
+            setAdminSection(
+              "dashboard"
+            )
           }
+
         />
 
       )}
+
+
       {/* =================================================
-    ADMIN COMMENTS
-    ================================================= */}
+          ADMIN COMMENTS
+          ================================================= */}
 
-{currentPage === "admin" &&
-  currentUser?.role === "ADMIN" &&
-  adminSection === "comments" && (
+      {currentPage === "admin" &&
+        currentUser?.role ===
+          "ADMIN" &&
+        adminSection ===
+          "comments" && (
 
-  <AdminComments
-    onBack={() =>
-      setAdminSection("dashboard")
-    }
-  />
+        <AdminComments
 
-)}
+          onBack={() =>
+            setAdminSection(
+              "dashboard"
+            )
+          }
+
+        />
+
+      )}
+
 
     </div>
 

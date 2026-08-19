@@ -10,6 +10,7 @@ function PostCard({
   onPostDeleted,
   onSaveToggle,
 }) {
+
   const [showComments, setShowComments] =
     useState(false);
 
@@ -19,19 +20,119 @@ function PostCard({
   const [deleting, setDeleting] =
     useState(false);
 
+
+  // =========================================
+  // LIKE STATUS
+  // =========================================
+
   const isLiked =
     post.likedBy?.some(
-      (id) => String(id) === String(userId)
+      (id) =>
+        String(id) === String(userId)
     );
+
+
+  // =========================================
+  // SAVE STATUS
+  // =========================================
 
   const isSaved =
     savedPosts.some(
-      (id) => String(id) === String(post.id)
+      (id) =>
+        String(id) === String(post.id)
     );
+
+
+  // =========================================
+  // MEDIA URL
+  // =========================================
+
+  /*
+   * Backend Post.java uses:
+   *
+   * imageUrl
+   * mediaType
+   *
+   * Example:
+   *
+   * /uploads/abc123.jpg
+   * /uploads/xyz789.mp4
+   */
+
+  const getMediaUrl = () => {
+
+    const url =
+      post.imageUrl ||
+      post.mediaUrl ||
+      post.fileUrl ||
+      post.media ||
+      null;
+
+    if (!url) {
+      return null;
+    }
+
+    /*
+     * If backend returns:
+     *
+     * /uploads/file.jpg
+     *
+     * convert it to:
+     *
+     * http://localhost:8080/uploads/file.jpg
+     */
+
+    if (
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+
+    if (url.startsWith("/")) {
+      return `http://localhost:8080${url}`;
+    }
+
+    return `http://localhost:8080/${url}`;
+  };
+
+
+  const mediaUrl =
+    getMediaUrl();
+
+
+  // =========================================
+  // MEDIA TYPE
+  // =========================================
+
+  const mediaType =
+    String(
+      post.mediaType ||
+      post.type ||
+      ""
+    ).toUpperCase();
+
+
+  // =========================================
+  // VIDEO DETECTION
+  // =========================================
+
+  const isVideo =
+    mediaType === "VIDEO" ||
+    mediaUrl?.match(
+      /\.(mp4|webm|ogg|mov|m4v)$/i
+    );
+
+
+  // =========================================
+  // LIKE
+  // =========================================
 
   const handleLike = async () => {
 
-    if (liking) return;
+    if (liking) {
+      return;
+    }
 
     try {
 
@@ -43,7 +144,11 @@ function PostCard({
         );
 
       if (onPostUpdated) {
-        onPostUpdated(response.data);
+
+        onPostUpdated(
+          response.data
+        );
+
       }
 
     } catch (error) {
@@ -57,13 +162,24 @@ function PostCard({
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        alert("Please login again.");
+
+        alert(
+          "Please login again."
+        );
+
       }
 
     } finally {
+
       setLiking(false);
+
     }
   };
+
+
+  // =========================================
+  // DELETE
+  // =========================================
 
   const handleDelete = async () => {
 
@@ -72,7 +188,10 @@ function PostCard({
         "Are you sure you want to delete this post?"
       );
 
-    if (!confirmed || deleting) {
+    if (
+      !confirmed ||
+      deleting
+    ) {
       return;
     }
 
@@ -85,7 +204,11 @@ function PostCard({
       );
 
       if (onPostDeleted) {
-        onPostDeleted(post.id);
+
+        onPostDeleted(
+          post.id
+        );
+
       }
 
     } catch (error) {
@@ -101,9 +224,16 @@ function PostCard({
       );
 
     } finally {
+
       setDeleting(false);
+
     }
   };
+
+
+  // =========================================
+  // SHARE
+  // =========================================
 
   const handleShare = async () => {
 
@@ -112,9 +242,13 @@ function PostCard({
 
     try {
 
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(
+        url
+      );
 
-      alert("Post link copied!");
+      alert(
+        "Post link copied!"
+      );
 
     } catch (error) {
 
@@ -127,32 +261,30 @@ function PostCard({
     }
   };
 
+
+  // =========================================
+  // AVATAR
+  // =========================================
+
   const avatar =
     post.username
       ?.charAt(0)
-      ?.toUpperCase() || "U";
+      ?.toUpperCase() ||
+    "U";
 
-  const mediaUrl =
-    post.mediaUrl ||
-    post.fileUrl ||
-    post.media;
 
-  const mediaType =
-    post.mediaType ||
-    post.type ||
-    "";
-
-  const isVideo =
-    mediaType === "VIDEO" ||
-    mediaType === "video" ||
-    mediaUrl?.match(
-      /\.(mp4|webm|ogg|mov)$/i
-    );
+  // =========================================
+  // RENDER
+  // =========================================
 
   return (
+
     <article className="post-card">
 
-      {/* HEADER */}
+
+      {/* =====================================
+          HEADER
+          ===================================== */}
 
       <div className="post-header">
 
@@ -167,29 +299,43 @@ function PostCard({
           </h3>
 
           <span>
+
             {post.createdAt
               ? new Date(
                   post.createdAt
                 ).toLocaleString()
               : "Just now"}
+
           </span>
 
         </div>
 
       </div>
 
-      {/* CAPTION */}
+
+      {/* =====================================
+          CAPTION
+          ===================================== */}
 
       {post.caption && (
+
         <div className="post-content">
           {post.caption}
         </div>
+
       )}
 
-      {/* MEDIA */}
+
+      {/* =====================================
+          IMAGE / VIDEO
+          ===================================== */}
 
       {mediaUrl && (
+
         <div className="post-media">
+
+
+          {/* VIDEO */}
 
           {isVideo ? (
 
@@ -197,25 +343,48 @@ function PostCard({
               className="post-video"
               src={mediaUrl}
               controls
+              playsInline
               preload="metadata"
+              onError={(e) => {
+                console.error(
+                  "Video failed to load:",
+                  mediaUrl
+                );
+              }}
             />
 
           ) : (
 
+            /* IMAGE */
+
             <img
               className="post-image"
               src={mediaUrl}
-              alt="Post media"
+              alt="Post"
+              loading="lazy"
+              onError={(e) => {
+                console.error(
+                  "Image failed to load:",
+                  mediaUrl
+                );
+              }}
             />
 
           )}
 
         </div>
+
       )}
 
-      {/* ACTIONS */}
+
+      {/* =====================================
+          ACTIONS
+          ===================================== */}
 
       <div className="post-footer">
+
+
+        {/* LIKE */}
 
         <button
           onClick={handleLike}
@@ -226,12 +395,19 @@ function PostCard({
               : "post-action"
           }
         >
+
           ❤️{" "}
+
           {isLiked
             ? "Unlike"
             : "Like"}{" "}
+
           {post.likesCount || 0}
+
         </button>
+
+
+        {/* COMMENT */}
 
         <button
           onClick={() =>
@@ -241,20 +417,33 @@ function PostCard({
           }
           className="post-action"
         >
+
           💬 Comment{" "}
+
           {post.commentsCount || 0}
+
         </button>
+
+
+        {/* SHARE */}
 
         <button
           onClick={handleShare}
           className="post-action"
         >
+
           ↗ Share
+
         </button>
+
+
+        {/* SAVE */}
 
         <button
           onClick={() =>
-            onSaveToggle?.(post.id)
+            onSaveToggle?.(
+              post.id
+            )
           }
           className={
             isSaved
@@ -262,11 +451,17 @@ function PostCard({
               : "post-action"
           }
         >
+
           🔖{" "}
+
           {isSaved
             ? "Saved"
             : "Save"}
+
         </button>
+
+
+        {/* DELETE */}
 
         {String(post.userId) ===
           String(userId) && (
@@ -276,19 +471,26 @@ function PostCard({
             disabled={deleting}
             className="post-action delete-btn"
           >
+
             🗑️{" "}
+
             {deleting
               ? "Deleting..."
               : "Delete"}
+
           </button>
 
         )}
 
       </div>
 
-      {/* COMMENTS */}
+
+      {/* =====================================
+          COMMENTS
+          ===================================== */}
 
       {showComments && (
+
         <CommentSection
           postId={post.id}
           onCommentAdded={() =>
@@ -299,9 +501,11 @@ function PostCard({
             })
           }
         />
+
       )}
 
     </article>
+
   );
 }
 

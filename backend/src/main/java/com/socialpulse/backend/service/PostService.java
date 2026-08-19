@@ -21,19 +21,26 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    
+    private final NotificationService notificationService;
 
-    // Folder where uploaded photos/videos will be stored
+    // Upload folder
     private final Path uploadDirectory =
             Paths.get("uploads");
 
+
+    // =========================================
+    // CONSTRUCTOR
+    // =========================================
+
     public PostService(
             PostRepository postRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            NotificationService notificationService
     ) {
 
         this.postRepository = postRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
 
         try {
 
@@ -48,9 +55,10 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // CREATE POST
-    // ============================
+    // TEXT + PHOTO + VIDEO
+    // =========================================
 
     public Post createPost(
             String caption,
@@ -60,19 +68,22 @@ public class PostService {
             String email
     ) {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found")
-                );
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "User not found"
+                                )
+                        );
 
 
         String mediaUrl = null;
         String mediaType = null;
 
 
-        // ============================
+        // =====================================
         // HANDLE PHOTO / VIDEO
-        // ============================
+        // =====================================
 
         if (file != null && !file.isEmpty()) {
 
@@ -83,8 +94,10 @@ public class PostService {
 
                 String extension = "";
 
-                if (originalFilename != null &&
-                        originalFilename.contains(".")) {
+                if (
+                        originalFilename != null &&
+                        originalFilename.contains(".")
+                ) {
 
                     extension =
                             originalFilename.substring(
@@ -93,7 +106,6 @@ public class PostService {
                 }
 
 
-                // Generate unique filename
                 String filename =
                         UUID.randomUUID()
                                 .toString()
@@ -104,25 +116,24 @@ public class PostService {
                         uploadDirectory.resolve(filename);
 
 
-                // Save file
                 Files.copy(
                         file.getInputStream(),
                         filePath
                 );
 
 
-                // URL that frontend will use
                 mediaUrl =
                         "/uploads/" + filename;
 
 
-                // Detect media type
                 String contentType =
                         file.getContentType();
 
 
-                if (contentType != null &&
-                        contentType.startsWith("video")) {
+                if (
+                        contentType != null &&
+                        contentType.startsWith("video")
+                ) {
 
                     mediaType = "VIDEO";
 
@@ -141,29 +152,39 @@ public class PostService {
         }
 
 
-        // ============================
-        // CREATE POST OBJECT
-        // ============================
+        // =====================================
+        // CREATE POST
+        // =====================================
 
         Post post = new Post();
 
-        post.setUserId(user.getId());
+        post.setUserId(
+                user.getId()
+        );
 
         post.setUsername(
                 user.getUsername()
         );
 
-        post.setCaption(caption);
+        post.setCaption(
+                caption
+        );
 
-        // Stores photo/video URL
-        post.setImageUrl(mediaUrl);
+        post.setImageUrl(
+                mediaUrl
+        );
 
-        // Stores IMAGE or VIDEO
-        post.setMediaType(mediaType);
+        post.setMediaType(
+                mediaType
+        );
 
-        post.setCountry(country);
+        post.setCountry(
+                country
+        );
 
-        post.setState(state);
+        post.setState(
+                state
+        );
 
         post.setLikesCount(0);
 
@@ -182,9 +203,9 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // GET FEED
-    // ============================
+    // =========================================
 
     public List<Post> getFeed() {
 
@@ -193,13 +214,16 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // GET SINGLE POST
-    // ============================
+    // =========================================
 
-    public Post getPostById(String id) {
+    public Post getPostById(
+            String id
+    ) {
 
-        return postRepository.findById(id)
+        return postRepository
+                .findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Post not found"
@@ -208,9 +232,9 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // GET USER POSTS
-    // ============================
+    // =========================================
 
     public List<Post> getPostsByUser(
             String userId
@@ -223,37 +247,48 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // LIKE / UNLIKE
-    // ============================
+    // =========================================
 
     public Post toggleLike(
             String postId,
             String email
     ) {
 
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Post not found"
-                        )
-                );
+        Post post =
+                postRepository
+                        .findById(postId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Post not found"
+                                )
+                        );
 
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found"
-                        )
-                );
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "User not found"
+                                )
+                        );
 
 
-        String userId = user.getId();
+        String userId =
+                user.getId();
 
 
-        if (post.getLikedBy().contains(userId)) {
+        // =====================================
+        // UNLIKE
+        // =====================================
 
-            // UNLIKE
+        if (
+                post.getLikedBy() != null &&
+                post.getLikedBy().contains(userId)
+        ) {
+
             post.getLikedBy()
                     .remove(userId);
 
@@ -264,14 +299,50 @@ public class PostService {
                     )
             );
 
-        } else {
 
-            // LIKE
+        }
+
+        // =====================================
+        // LIKE
+        // =====================================
+
+        else {
+
+            if (post.getLikedBy() == null) {
+
+                post.setLikedBy(
+                        new java.util.ArrayList<>()
+                );
+            }
+
+
             post.getLikedBy()
                     .add(userId);
 
+
             post.setLikesCount(
                     post.getLikesCount() + 1
+            );
+
+
+            // =================================
+            // CREATE NOTIFICATION
+            // =================================
+
+            notificationService.createNotification(
+
+                    post.getUserId(),
+
+                    user.getId(),
+
+                    user.getUsername(),
+
+                    "LIKE",
+
+                    user.getUsername()
+                            + " liked your post",
+
+                    post.getId()
             );
         }
 
@@ -285,34 +356,40 @@ public class PostService {
     }
 
 
-    // ============================
+    // =========================================
     // DELETE POST
-    // ============================
+    // =========================================
 
     public void deletePost(
             String postId,
             String email
     ) {
 
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Post not found"
-                        )
-                );
+        Post post =
+                postRepository
+                        .findById(postId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Post not found"
+                                )
+                        );
 
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found"
-                        )
-                );
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "User not found"
+                                )
+                        );
 
 
         // Only owner can delete
-        if (!post.getUserId()
-                .equals(user.getId())) {
+        if (
+                !post.getUserId()
+                        .equals(user.getId())
+        ) {
 
             throw new RuntimeException(
                     "You can only delete your own posts"
@@ -320,9 +397,14 @@ public class PostService {
         }
 
 
-        // Delete uploaded media file
-        if (post.getImageUrl() != null &&
-                !post.getImageUrl().isBlank()) {
+        // =====================================
+        // DELETE MEDIA FILE
+        // =====================================
+
+        if (
+                post.getImageUrl() != null &&
+                !post.getImageUrl().isBlank()
+        ) {
 
             try {
 
@@ -333,12 +415,17 @@ public class PostService {
                                         ""
                                 );
 
+
                 Path filePath =
                         uploadDirectory.resolve(
                                 filename
                         );
 
-                Files.deleteIfExists(filePath);
+
+                Files.deleteIfExists(
+                        filePath
+                );
+
 
             } catch (IOException e) {
 
@@ -349,7 +436,10 @@ public class PostService {
         }
 
 
-        // Delete post from MongoDB
+        // =====================================
+        // DELETE POST FROM MONGODB
+        // =====================================
+
         postRepository.delete(post);
     }
 }

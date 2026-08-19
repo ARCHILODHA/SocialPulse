@@ -4,7 +4,7 @@ import "./Register.css";
 
 const API_URL = "http://localhost:8080/api/auth";
 
-function Register({ onLogin }) {
+function Register({ onLogin, onBack }) {
   const [form, setForm] = useState({
     name: "",
     username: "",
@@ -70,7 +70,9 @@ function Register({ onLogin }) {
 
       console.log("Registration response:", response.data);
 
-      setSuccess("Account created successfully! Redirecting to login...");
+      setSuccess(
+        "Account created successfully! Redirecting to login..."
+      );
 
       setForm({
         name: "",
@@ -107,7 +109,17 @@ function Register({ onLogin }) {
 
       <div className="register-card">
 
-        {/* Logo */}
+        {/* BACK BUTTON */}
+        <button
+          type="button"
+          className="register-back-button"
+          onClick={onBack || onLogin}
+        >
+          <span className="back-arrow">←</span>
+          Back
+        </button>
+
+        {/* LOGO */}
         <div className="register-logo-icon">
           ✦
         </div>
@@ -128,83 +140,104 @@ function Register({ onLogin }) {
 
         <form onSubmit={handleRegister}>
 
+          {/* FULL NAME */}
           <div className="input-group">
             <label>Full Name</label>
+
             <input
               type="text"
               name="name"
               placeholder="Enter your full name"
               value={form.name}
               onChange={handleChange}
+              required
             />
           </div>
 
+          {/* USERNAME */}
           <div className="input-group">
             <label>Username</label>
+
             <input
               type="text"
               name="username"
               placeholder="Choose a username"
               value={form.username}
               onChange={handleChange}
+              required
             />
           </div>
 
+          {/* EMAIL */}
           <div className="input-group">
             <label>Email</label>
+
             <input
               type="email"
               name="email"
               placeholder="Enter your email"
               value={form.email}
               onChange={handleChange}
+              required
             />
           </div>
 
+          {/* PASSWORD */}
           <div className="input-group">
             <label>Password</label>
+
             <input
               type="password"
               name="password"
               placeholder="Create a password"
               value={form.password}
               onChange={handleChange}
+              required
             />
           </div>
 
+          {/* CONFIRM PASSWORD */}
           <div className="input-group">
             <label>Confirm Password</label>
+
             <input
               type="password"
               name="confirmPassword"
               placeholder="Confirm your password"
               value={form.confirmPassword}
               onChange={handleChange}
+              required
             />
           </div>
 
+          {/* ERROR */}
           {error && (
             <div className="register-error">
               {error}
             </div>
           )}
 
+          {/* SUCCESS */}
           {success && (
             <div className="register-success">
               {success}
             </div>
           )}
 
+          {/* REGISTER BUTTON */}
           <button
             type="submit"
             className="register-button"
             disabled={loading}
           >
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading
+              ? "Creating Account..."
+              : "Create Account"}
           </button>
 
         </form>
 
+        {/* LOGIN LINK */}
         <div className="login-link">
           Already have an account?
 
