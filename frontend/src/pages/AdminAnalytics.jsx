@@ -79,30 +79,67 @@ function AdminAnalytics({ onBack }) {
 
 
   // =========================================
-  // COUNTRY DATA
-  // =========================================
+// COUNTRY DATA
+// =========================================
 
-  const countryData =
-    Object.entries(
-      data.countryStats || {}
-    ).map(([name, posts]) => ({
+// Merge missing/Unknown locations into India
+const countryCounts = {};
+
+Object.entries(data.countryStats || {}).forEach(
+  ([name, posts]) => {
+
+    const cleanName =
+      name &&
+      name.trim() !== "" &&
+      name.toLowerCase() !== "unknown"
+        ? name.trim()
+        : "India";
+
+    countryCounts[cleanName] =
+      (countryCounts[cleanName] || 0) +
+      Number(posts || 0);
+  }
+);
+
+const countryData =
+  Object.entries(countryCounts).map(
+    ([name, posts]) => ({
       name,
-      posts: Number(posts),
-    }));
+      posts,
+    })
+  );
 
 
-  // =========================================
-  // STATE DATA
-  // =========================================
+// =========================================
+// STATE DATA
+// =========================================
 
-  const stateData =
-    Object.entries(
-      data.stateStats || {}
-    ).map(([name, posts]) => ({
+// Merge missing/Unknown locations into Karnataka
+const stateCounts = {};
+
+Object.entries(data.stateStats || {}).forEach(
+  ([name, posts]) => {
+
+    const cleanName =
+      name &&
+      name.trim() !== "" &&
+      name.toLowerCase() !== "unknown"
+        ? name.trim()
+        : "Karnataka";
+
+    stateCounts[cleanName] =
+      (stateCounts[cleanName] || 0) +
+      Number(posts || 0);
+  }
+);
+
+const stateData =
+  Object.entries(stateCounts).map(
+    ([name, posts]) => ({
       name,
-      posts: Number(posts),
-    }));
-
+      posts,
+    })
+  );
 
   // =========================================
   // TOP POSTS

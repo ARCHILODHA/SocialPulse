@@ -21,9 +21,8 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
 
-    // Upload folder
+    // Folder for uploaded photos/videos
     private final Path uploadDirectory =
             Paths.get("uploads");
 
@@ -34,17 +33,17 @@ public class PostService {
 
     public PostService(
             PostRepository postRepository,
-            UserRepository userRepository,
-            NotificationService notificationService
+            UserRepository userRepository
     ) {
 
         this.postRepository = postRepository;
         this.userRepository = userRepository;
-        this.notificationService = notificationService;
 
         try {
 
-            Files.createDirectories(uploadDirectory);
+            Files.createDirectories(
+                    uploadDirectory
+            );
 
         } catch (IOException e) {
 
@@ -57,7 +56,6 @@ public class PostService {
 
     // =========================================
     // CREATE POST
-    // TEXT + PHOTO + VIDEO
     // =========================================
 
     public Post createPost(
@@ -68,6 +66,10 @@ public class PostService {
             String email
     ) {
 
+        // =====================================
+        // FIND USER
+        // =====================================
+
         User user =
                 userRepository.findByEmail(email)
                         .orElseThrow(() ->
@@ -77,6 +79,58 @@ public class PostService {
                         );
 
 
+        // =====================================
+        // LOCATION
+        // =====================================
+
+        /*
+         * ALWAYS store a location.
+         *
+         * Priority:
+         *
+         * 1. Location sent by frontend
+         * 2. User's saved location
+         * 3. India / Karnataka fallback
+         */
+
+        String finalCountry =
+                country != null &&
+                !country.trim().isEmpty()
+                        ? country.trim()
+                        : user.getCountry();
+
+        String finalState =
+                state != null &&
+                !state.trim().isEmpty()
+                        ? state.trim()
+                        : user.getState();
+
+
+        // Final fallback
+        if (
+                finalCountry == null ||
+                finalCountry.trim().isEmpty()
+        ) {
+
+            finalCountry = "India";
+
+        }
+
+
+        if (
+                finalState == null ||
+                finalState.trim().isEmpty()
+        ) {
+
+            finalState = "Karnataka";
+
+        }
+
+
+        // =====================================
+        // MEDIA VARIABLES
+        // =====================================
+
         String mediaUrl = null;
         String mediaType = null;
 
@@ -85,14 +139,19 @@ public class PostService {
         // HANDLE PHOTO / VIDEO
         // =====================================
 
-        if (file != null && !file.isEmpty()) {
+        if (
+                file != null &&
+                !file.isEmpty()
+        ) {
 
             try {
 
                 String originalFilename =
                         file.getOriginalFilename();
 
+
                 String extension = "";
+
 
                 if (
                         originalFilename != null &&
@@ -101,11 +160,14 @@ public class PostService {
 
                     extension =
                             originalFilename.substring(
-                                    originalFilename.lastIndexOf(".")
+                                    originalFilename
+                                            .lastIndexOf(".")
                             );
+
                 }
 
 
+                // Generate unique filename
                 String filename =
                         UUID.randomUUID()
                                 .toString()
@@ -113,19 +175,24 @@ public class PostService {
 
 
                 Path filePath =
-                        uploadDirectory.resolve(filename);
+                        uploadDirectory.resolve(
+                                filename
+                        );
 
 
+                // Save file
                 Files.copy(
                         file.getInputStream(),
                         filePath
                 );
 
 
+                // URL stored in MongoDB
                 mediaUrl =
                         "/uploads/" + filename;
 
 
+                // Detect IMAGE / VIDEO
                 String contentType =
                         file.getContentType();
 
@@ -140,8 +207,8 @@ public class PostService {
                 } else {
 
                     mediaType = "IMAGE";
-                }
 
+                }
 
             } catch (IOException e) {
 
@@ -158,37 +225,60 @@ public class PostService {
 
         Post post = new Post();
 
+
         post.setUserId(
                 user.getId()
         );
+
 
         post.setUsername(
                 user.getUsername()
         );
 
+
         post.setCaption(
                 caption
         );
 
+
+        // Photo / video URL
         post.setImageUrl(
                 mediaUrl
         );
 
+
+        // IMAGE / VIDEO
         post.setMediaType(
                 mediaType
         );
 
+
+        // =====================================
+        // SAVE LOCATION
+        // =====================================
+
         post.setCountry(
-                country
+                finalCountry
         );
 
+
         post.setState(
-                state
+                finalState
         );
+
+
+        // =====================================
+        // COUNTS
+        // =====================================
 
         post.setLikesCount(0);
 
         post.setCommentsCount(0);
+
+
+        // =====================================
+        // DATES
+        // =====================================
 
         post.setCreatedAt(
                 LocalDateTime.now()
@@ -198,6 +288,52 @@ public class PostService {
                 LocalDateTime.now()
         );
 
+
+        // =====================================
+        // DEBUG
+        // =====================================
+
+        System.out.println(
+                "================================="
+        );
+
+        System.out.println(
+                "Creating Post"
+        );
+
+        System.out.println(
+                "User: " +
+                user.getUsername()
+        );
+
+        System.out.println(
+                "Country: " +
+                finalCountry
+        );
+
+        System.out.println(
+                "State: " +
+                finalState
+        );
+
+        System.out.println(
+                "Media URL: " +
+                mediaUrl
+        );
+
+        System.out.println(
+                "Media Type: " +
+                mediaType
+        );
+
+        System.out.println(
+                "================================="
+        );
+
+
+        // =====================================
+        // SAVE TO MONGODB
+        // =====================================
 
         return postRepository.save(post);
     }
@@ -280,17 +416,16 @@ public class PostService {
                 user.getId();
 
 
-        // =====================================
-        // UNLIKE
-        // =====================================
-
         if (
-                post.getLikedBy() != null &&
-                post.getLikedBy().contains(userId)
+                post.getLikedBy()
+                        .contains(userId)
         ) {
+
+            // UNLIKE
 
             post.getLikedBy()
                     .remove(userId);
+
 
             post.setLikesCount(
                     Math.max(
@@ -299,22 +434,9 @@ public class PostService {
                     )
             );
 
+        } else {
 
-        }
-
-        // =====================================
-        // LIKE
-        // =====================================
-
-        else {
-
-            if (post.getLikedBy() == null) {
-
-                post.setLikedBy(
-                        new java.util.ArrayList<>()
-                );
-            }
-
+            // LIKE
 
             post.getLikedBy()
                     .add(userId);
@@ -324,26 +446,6 @@ public class PostService {
                     post.getLikesCount() + 1
             );
 
-
-            // =================================
-            // CREATE NOTIFICATION
-            // =================================
-
-            notificationService.createNotification(
-
-                    post.getUserId(),
-
-                    user.getId(),
-
-                    user.getUsername(),
-
-                    "LIKE",
-
-                    user.getUsername()
-                            + " liked your post",
-
-                    post.getId()
-            );
         }
 
 
@@ -426,7 +528,6 @@ public class PostService {
                         filePath
                 );
 
-
             } catch (IOException e) {
 
                 System.out.println(
@@ -437,7 +538,7 @@ public class PostService {
 
 
         // =====================================
-        // DELETE POST FROM MONGODB
+        // DELETE POST
         // =====================================
 
         postRepository.delete(post);

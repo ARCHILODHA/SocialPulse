@@ -49,16 +49,46 @@ function AdminDashboard({ onSectionChange }) {
   }
 
 
-  const topCountry =
-    analytics?.countryStats
-      ? Object.entries(
-          analytics.countryStats
-        ).sort(
-          ([, a], [, b]) =>
-            Number(b) - Number(a)
-        )[0]
-      : null;
+  // =========================================
+  // COUNTRY DATA
+  // Merge Unknown / blank locations into India
+  // =========================================
 
+  const countryCounts = {};
+
+  Object.entries(
+    analytics?.countryStats || {}
+  ).forEach(([name, posts]) => {
+
+    const cleanName =
+      name &&
+      name.trim() !== "" &&
+      name.toLowerCase() !== "unknown"
+        ? name.trim()
+        : "India";
+
+    countryCounts[cleanName] =
+      (countryCounts[cleanName] || 0) +
+      Number(posts || 0);
+
+  });
+
+
+  // =========================================
+  // TOP COUNTRY
+  // =========================================
+
+  const topCountry =
+    Object.entries(countryCounts)
+      .sort(
+        ([, a], [, b]) =>
+          Number(b) - Number(a)
+      )[0] || null;
+
+
+  // =========================================
+  // TOP POST
+  // =========================================
 
   const topPost =
     analytics?.topPosts?.length
@@ -206,6 +236,7 @@ function AdminDashboard({ onSectionChange }) {
           <div className="admin-activity-chart">
 
             <div className="activity-bar">
+
               <span
                 style={{
                   height: `${Math.min(
@@ -214,9 +245,12 @@ function AdminDashboard({ onSectionChange }) {
                   )}%`
                 }}
               />
+
             </div>
 
+
             <div className="activity-bar">
+
               <span
                 style={{
                   height: `${Math.min(
@@ -225,9 +259,12 @@ function AdminDashboard({ onSectionChange }) {
                   )}%`
                 }}
               />
+
             </div>
 
+
             <div className="activity-bar">
+
               <span
                 style={{
                   height: `${Math.min(
@@ -236,9 +273,12 @@ function AdminDashboard({ onSectionChange }) {
                   )}%`
                 }}
               />
+
             </div>
 
+
             <div className="activity-bar">
+
               <span
                 style={{
                   height: `${Math.min(
@@ -247,9 +287,12 @@ function AdminDashboard({ onSectionChange }) {
                   )}%`
                 }}
               />
+
             </div>
 
+
             <div className="activity-bar">
+
               <span
                 style={{
                   height: `${Math.min(
@@ -258,6 +301,7 @@ function AdminDashboard({ onSectionChange }) {
                   )}%`
                 }}
               />
+
             </div>
 
           </div>
@@ -417,6 +461,9 @@ function AdminDashboard({ onSectionChange }) {
 
         <div className="admin-quick-grid">
 
+
+          {/* USERS */}
+
           <button
             onClick={() =>
               onSectionChange("users")
@@ -437,6 +484,8 @@ function AdminDashboard({ onSectionChange }) {
 
           </button>
 
+
+          {/* POSTS */}
 
           <button
             onClick={() =>
@@ -459,6 +508,8 @@ function AdminDashboard({ onSectionChange }) {
           </button>
 
 
+          {/* COMMENTS */}
+
           <button
             onClick={() =>
               onSectionChange("comments")
@@ -479,6 +530,8 @@ function AdminDashboard({ onSectionChange }) {
 
           </button>
 
+
+          {/* ANALYTICS */}
 
           <button
             onClick={() =>

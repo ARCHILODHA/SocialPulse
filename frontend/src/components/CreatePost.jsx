@@ -14,6 +14,11 @@ function CreatePost({ user, onPostCreated }) {
 
   const [showFeelings, setShowFeelings] = useState(false);
 
+
+  // =========================================
+  // FEELINGS
+  // =========================================
+
   const feelings = [
     "😊 Happy",
     "😍 Excited",
@@ -23,6 +28,7 @@ function CreatePost({ user, onPostCreated }) {
     "😢 Sad",
     "🔥 Motivated",
   ];
+
 
   // =========================================
   // CLOSE FEELING MENU
@@ -34,7 +40,9 @@ function CreatePost({ user, onPostCreated }) {
 
       if (
         feelingWrapperRef.current &&
-        !feelingWrapperRef.current.contains(event.target)
+        !feelingWrapperRef.current.contains(
+          event.target
+        )
       ) {
         setShowFeelings(false);
       }
@@ -47,10 +55,12 @@ function CreatePost({ user, onPostCreated }) {
     );
 
     return () => {
+
       document.removeEventListener(
         "mousedown",
         handleOutsideClick
       );
+
     };
 
   }, []);
@@ -69,12 +79,18 @@ function CreatePost({ user, onPostCreated }) {
       return;
     }
 
+
+    // Check image
     const isImage =
       selectedFile.type.startsWith("image/");
 
+
+    // Check video
     const isVideo =
       selectedFile.type.startsWith("video/");
 
+
+    // Invalid file
     if (!isImage && !isVideo) {
 
       alert(
@@ -82,14 +98,17 @@ function CreatePost({ user, onPostCreated }) {
       );
 
       e.target.value = "";
+
       return;
     }
 
-    // Optional size protection
+
+    // File size
     const maxSize =
       isVideo
         ? 100 * 1024 * 1024
         : 10 * 1024 * 1024;
+
 
     if (selectedFile.size > maxSize) {
 
@@ -100,16 +119,22 @@ function CreatePost({ user, onPostCreated }) {
       );
 
       e.target.value = "";
+
       return;
     }
 
+
+    // Store file
     setFile(selectedFile);
 
+
+    // Store type
     setSelectedType(
       isVideo
         ? "VIDEO"
         : "IMAGE"
     );
+
   };
 
 
@@ -120,10 +145,13 @@ function CreatePost({ user, onPostCreated }) {
   const removeFile = () => {
 
     setFile(null);
+
     setSelectedType("");
 
     if (fileInputRef.current) {
+
       fileInputRef.current.value = "";
+
     }
 
   };
@@ -136,6 +164,7 @@ function CreatePost({ user, onPostCreated }) {
   const selectFeeling = (selectedFeeling) => {
 
     setFeeling(selectedFeeling);
+
     setShowFeelings(false);
 
   };
@@ -148,6 +177,7 @@ function CreatePost({ user, onPostCreated }) {
   const removeFeeling = () => {
 
     setFeeling("");
+
     setShowFeelings(false);
 
   };
@@ -159,9 +189,9 @@ function CreatePost({ user, onPostCreated }) {
 
   const createPost = async () => {
 
-    /*
-     * Prevent completely empty posts
-     */
+    // -----------------------------------------
+    // EMPTY POST CHECK
+    // -----------------------------------------
 
     if (
       !caption.trim() &&
@@ -183,35 +213,38 @@ function CreatePost({ user, onPostCreated }) {
 
 
       // =======================================
-      // CREATE MULTIPART FORM DATA
+      // FORM DATA
       // =======================================
 
-      const formData = new FormData();
+      const formData =
+        new FormData();
 
 
-      /*
-       * Caption
-       */
+      // =======================================
+      // CAPTION
+      // =======================================
 
       let finalCaption =
         caption.trim();
 
 
+      // =======================================
+      // FEELING
+      // =======================================
+
       /*
-       * Feeling
+       * The current Post model does not have
+       * a separate feeling field.
        *
-       * Your current backend Post model doesn't
-       * have a separate feeling field.
-       *
-       * Therefore we include it in the caption
-       * so it isn't lost.
+       * Therefore feeling is added to caption.
        */
 
       if (feeling) {
 
-        finalCaption = finalCaption
-          ? `${finalCaption} ${feeling}`
-          : feeling;
+        finalCaption =
+          finalCaption
+            ? `${finalCaption} ${feeling}`
+            : feeling;
 
       }
 
@@ -222,12 +255,47 @@ function CreatePost({ user, onPostCreated }) {
       );
 
 
+      // =======================================
+      // LOCATION
+      // =======================================
+
       /*
-       * PHOTO / VIDEO
-       *
        * IMPORTANT:
-       * Backend expects the parameter name "file".
+       *
+       * If user has country/state,
+       * use them.
+       *
+       * If they are missing,
+       * default to India/Karnataka.
+       *
+       * This prevents new posts from becoming
+       * "Unknown" in Admin Analytics.
        */
+
+      const postCountry =
+        user?.country?.trim() ||
+        "India";
+
+      const postState =
+        user?.state?.trim() ||
+        "Karnataka";
+
+
+      formData.append(
+        "country",
+        postCountry
+      );
+
+
+      formData.append(
+        "state",
+        postState
+      );
+
+
+      // =======================================
+      // PHOTO / VIDEO
+      // =======================================
 
       if (file) {
 
@@ -245,7 +313,11 @@ function CreatePost({ user, onPostCreated }) {
       // =======================================
 
       console.log(
-        "Creating post..."
+        "================================="
+      );
+
+      console.log(
+        "Creating SocialPulse post..."
       );
 
       console.log(
@@ -254,13 +326,42 @@ function CreatePost({ user, onPostCreated }) {
       );
 
       console.log(
+        "Feeling:",
+        feeling
+      );
+
+      console.log(
+        "Country:",
+        postCountry
+      );
+
+      console.log(
+        "State:",
+        postState
+      );
+
+      console.log(
         "File:",
         file
       );
 
       console.log(
+        "File name:",
+        file?.name
+      );
+
+      console.log(
+        "File type:",
+        file?.type
+      );
+
+      console.log(
         "Media type:",
         selectedType
+      );
+
+      console.log(
+        "================================="
       );
 
 
@@ -282,7 +383,10 @@ function CreatePost({ user, onPostCreated }) {
 
 
       console.log(
-        "Post created successfully:",
+        "Post created successfully:"
+      );
+
+      console.log(
         response.data
       );
 
@@ -292,9 +396,13 @@ function CreatePost({ user, onPostCreated }) {
       // =======================================
 
       setCaption("");
+
       setFile(null);
+
       setFeeling("");
+
       setSelectedType("");
+
       setShowFeelings(false);
 
 
@@ -306,7 +414,7 @@ function CreatePost({ user, onPostCreated }) {
 
 
       // =======================================
-      // SEND POST TO HOME
+      // UPDATE HOME FEED
       // =======================================
 
       if (onPostCreated) {
@@ -323,6 +431,7 @@ function CreatePost({ user, onPostCreated }) {
         "Failed to create post:",
         error
       );
+
 
       console.error(
         "Backend response:",
@@ -350,8 +459,14 @@ function CreatePost({ user, onPostCreated }) {
   // =========================================
 
   const avatar =
-    user?.name?.charAt(0)?.toUpperCase() ||
-    user?.username?.charAt(0)?.toUpperCase() ||
+    user?.name
+      ?.charAt(0)
+      ?.toUpperCase() ||
+
+    user?.username
+      ?.charAt(0)
+      ?.toUpperCase() ||
+
     "U";
 
 
@@ -363,12 +478,15 @@ function CreatePost({ user, onPostCreated }) {
 
     <section className="create-post">
 
+
       {/* =====================================
           AVATAR
-          ===================================== */}
+      ===================================== */}
 
       <div className="avatar">
+
         {avatar}
+
       </div>
 
 
@@ -377,7 +495,7 @@ function CreatePost({ user, onPostCreated }) {
 
         {/* =====================================
             CAPTION
-            ===================================== */}
+        ===================================== */}
 
         <textarea
           placeholder="What's happening?"
@@ -391,7 +509,7 @@ function CreatePost({ user, onPostCreated }) {
 
         {/* =====================================
             SELECTED MEDIA
-            ===================================== */}
+        ===================================== */}
 
         {file && (
 
@@ -404,9 +522,11 @@ function CreatePost({ user, onPostCreated }) {
                   fontSize: "18px"
                 }}
               >
+
                 {selectedType === "VIDEO"
                   ? "🎥"
                   : "📷"}
+
               </span>
 
               {" "}
@@ -422,7 +542,9 @@ function CreatePost({ user, onPostCreated }) {
               type="button"
               onClick={removeFile}
             >
+
               ✕
+
             </button>
 
           </div>
@@ -432,7 +554,7 @@ function CreatePost({ user, onPostCreated }) {
 
         {/* =====================================
             SELECTED FEELING
-            ===================================== */}
+        ===================================== */}
 
         {feeling && (
 
@@ -455,7 +577,9 @@ function CreatePost({ user, onPostCreated }) {
               type="button"
               onClick={removeFeeling}
             >
+
               ✕
+
             </button>
 
           </div>
@@ -465,7 +589,7 @@ function CreatePost({ user, onPostCreated }) {
 
         {/* =====================================
             FILE INPUT
-            ===================================== */}
+        ===================================== */}
 
         <input
           ref={fileInputRef}
@@ -478,52 +602,72 @@ function CreatePost({ user, onPostCreated }) {
 
         {/* =====================================
             ACTIONS
-            ===================================== */}
+        ===================================== */}
 
         <div className="post-actions">
 
 
-          {/* PHOTO */}
+          {/* ===================================
+              PHOTO
+          =================================== */}
 
           <button
             type="button"
             className="media-action-button"
+            disabled={posting}
             onClick={() => {
+
+              if (!fileInputRef.current) {
+                return;
+              }
 
               fileInputRef.current.accept =
                 "image/*";
 
+              fileInputRef.current.value = "";
+
               fileInputRef.current.click();
 
             }}
-            disabled={posting}
           >
+
             📷 Photo
+
           </button>
 
 
-          {/* VIDEO */}
+          {/* ===================================
+              VIDEO
+          =================================== */}
 
           <button
             type="button"
             className="media-action-button"
+            disabled={posting}
             onClick={() => {
+
+              if (!fileInputRef.current) {
+                return;
+              }
 
               fileInputRef.current.accept =
                 "video/*";
 
+              fileInputRef.current.value = "";
+
               fileInputRef.current.click();
 
             }}
-            disabled={posting}
           >
+
             🎥 Video
+
           </button>
 
 
           {/* ===================================
               FEELING
-              =================================== */}
+          =================================== */}
 
           <div
             className="feeling-wrapper"
@@ -533,39 +677,47 @@ function CreatePost({ user, onPostCreated }) {
             <button
               type="button"
               className="media-action-button"
+              disabled={posting}
               onClick={() =>
                 setShowFeelings(
                   (current) => !current
                 )
               }
-              disabled={posting}
             >
+
               😊 Feeling
+
             </button>
 
+
+            {/* FEELING MENU */}
 
             {showFeelings && (
 
               <div className="feeling-menu">
 
-                {feelings.map((item) => (
+                {feelings.map(
+                  (item) => (
 
-                  <button
-                    key={item}
-                    type="button"
-                    className={
-                      feeling === item
-                        ? "active-feeling"
-                        : ""
-                    }
-                    onClick={() =>
-                      selectFeeling(item)
-                    }
-                  >
-                    {item}
-                  </button>
+                    <button
+                      key={item}
+                      type="button"
+                      className={
+                        feeling === item
+                          ? "active-feeling"
+                          : ""
+                      }
+                      onClick={() =>
+                        selectFeeling(item)
+                      }
+                    >
 
-                ))}
+                      {item}
+
+                    </button>
+
+                  )
+                )}
 
               </div>
 
@@ -575,8 +727,8 @@ function CreatePost({ user, onPostCreated }) {
 
 
           {/* ===================================
-              POST
-              =================================== */}
+              POST BUTTON
+          =================================== */}
 
           <button
             type="button"
@@ -591,6 +743,7 @@ function CreatePost({ user, onPostCreated }) {
 
           </button>
 
+
         </div>
 
       </div>
@@ -598,6 +751,7 @@ function CreatePost({ user, onPostCreated }) {
     </section>
 
   );
+
 }
 
 export default CreatePost;
